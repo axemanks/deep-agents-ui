@@ -62,7 +62,7 @@ export const ChatMessage = React.memo<ChatMessageProps>(
           )!,
         );
       }
-    }, [selectedSubAgent, onSelectSubAgent, subAgentsString]);
+    }, [selectedSubAgent, onSelectSubAgent, subAgentsString, subAgents]);
 
     return (
       <div
