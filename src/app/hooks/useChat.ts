@@ -1,7 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { useStream } from "@langchain/langgraph-sdk/react";
 import { type Message } from "@langchain/langgraph-sdk";
-import { getDeployment } from "@/lib/environment/deployments";
 import { v4 as uuidv4 } from "uuid";
 import type { TodoItem } from "../types/types";
 import { createClient } from "@/lib/client";
@@ -20,17 +19,17 @@ export function useChat(
   ) => void,
   onTodosUpdate: (todos: TodoItem[]) => void,
   onFilesUpdate: (files: Record<string, string>) => void,
+  assistantId: string,
 ) {
-  const deployment = useMemo(() => getDeployment(), []);
   const { session } = useAuthContext();
   const accessToken = session?.accessToken;
 
   const agentId = useMemo(() => {
-    if (!deployment?.agentId) {
-      throw new Error(`No agent ID configured in environment`);
+    if (!assistantId) {
+      throw new Error(`No agent ID selected`);
     }
-    return deployment.agentId;
-  }, [deployment]);
+    return assistantId;
+  }, [assistantId]);
 
   const handleUpdateEvent = useCallback(
     (data: { [node: string]: Partial<StateType> }) => {

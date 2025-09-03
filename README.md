@@ -11,21 +11,21 @@ And check out this [video](https://youtu.be/0CE_BhdnZZI) for a walkthrough of th
 
 ### Connecting to a Local LangGraph Server
 
-Create a `.env.local` file and set two variables
+Create a `.env.local` file and set at least one variable
 
 ```env
 NEXT_PUBLIC_DEPLOYMENT_URL="http://127.0.0.1:2024" # Or your server URL
-NEXT_PUBLIC_AGENT_ID=<your agent ID from langgraph.json>
+# NEXT_PUBLIC_AGENT_ID=<optional default agent ID>
 ```
 
 ### Connecting to a Production LangGraph Deployment on LGP
 
-Create a `.env.local` file and set three variables
+Create a `.env.local` file and set the required variables
 
 ```env
 NEXT_PUBLIC_DEPLOYMENT_URL="your agent server URL"
-NEXT_PUBLIC_AGENT_ID=<your agent ID from langgraph.json>
 NEXT_PUBLIC_LANGSMITH_API_KEY=<langsmith-api-key>
+# NEXT_PUBLIC_AGENT_ID=<optional default agent ID>
 ```
 
 

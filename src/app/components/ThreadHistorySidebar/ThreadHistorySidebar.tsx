@@ -16,17 +16,19 @@ interface ThreadHistorySidebarProps {
   setOpen: (open: boolean) => void;
   currentThreadId: string | null;
   onThreadSelect: (threadId: string) => void;
+  assistantId: string;
 }
 
 export const ThreadHistorySidebar = React.memo<ThreadHistorySidebarProps>(
-  ({ open, setOpen, currentThreadId, onThreadSelect }) => {
+  ({ open, setOpen, currentThreadId, onThreadSelect, assistantId }) => {
     const [threads, setThreads] = useState<Thread[]>([]);
     const [isLoadingThreadHistory, setIsLoadingThreadHistory] = useState(true);
     const { session } = useAuthContext();
     const deployment = useMemo(() => getDeployment(), []);
 
     const fetchThreads = useCallback(async () => {
-      if (!deployment?.deploymentUrl || !session?.accessToken) return;
+      if (!deployment?.deploymentUrl || !session?.accessToken || !assistantId)
+        return;
       setIsLoadingThreadHistory(true);
       try {
         const client = createClient(session.accessToken);
@@ -34,8 +36,12 @@ export const ThreadHistorySidebar = React.memo<ThreadHistorySidebarProps>(
           limit: 30,
           sortBy: "created_at",
           sortOrder: "desc",
+          metadata: { assistant_id: assistantId },
         });
-        const threadList: Thread[] = response.map((thread: any) => {
+        const filtered = Array.isArray(response)
+          ? response.filter((t: any) => t.assistant_id === assistantId)
+          : [];
+        const threadList: Thread[] = filtered.map((thread: any) => {
           let displayContent = `Thread ${thread.thread_id.slice(0, 8)}`;
           try {
             if (
@@ -71,11 +77,11 @@ export const ThreadHistorySidebar = React.memo<ThreadHistorySidebarProps>(
       } finally {
         setIsLoadingThreadHistory(false);
       }
-    }, [deployment?.deploymentUrl, session?.accessToken]);
+    }, [deployment?.deploymentUrl, session?.accessToken, assistantId]);
 
     useEffect(() => {
       fetchThreads();
-    }, [fetchThreads, currentThreadId]);
+    }, [fetchThreads, currentThreadId, assistantId]);
 
     const groupedThreads = useMemo(() => {
       const groups: Record<string, Thread[]> = {
