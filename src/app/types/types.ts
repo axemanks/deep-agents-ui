@@ -34,3 +34,8 @@ export interface Thread {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface Assistant {
+  id: string;
+  name?: string;
+}

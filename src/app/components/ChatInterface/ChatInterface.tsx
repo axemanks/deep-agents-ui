@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Send, Bot, LoaderCircle, SquarePen, History, X } from "lucide-react";
 import { ChatMessage } from "../ChatMessage/ChatMessage";
 import { ThreadHistorySidebar } from "../ThreadHistorySidebar/ThreadHistorySidebar";
-import type { SubAgent, TodoItem, ToolCall } from "../../types/types";
+import type { Assistant, SubAgent, TodoItem, ToolCall } from "../../types/types";
 import { useChat } from "../../hooks/useChat";
 import styles from "./ChatInterface.module.scss";
 import { Message } from "@langchain/langgraph-sdk";
@@ -30,6 +30,9 @@ interface ChatInterfaceProps {
   onFilesUpdate: (files: Record<string, string>) => void;
   onNewThread: () => void;
   isLoadingThreadState: boolean;
+  assistants: Assistant[];
+  selectedAssistantId: string;
+  onSelectAssistant: (id: string) => void;
 }
 
 export const ChatInterface = React.memo<ChatInterfaceProps>(
@@ -42,6 +45,9 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(
     onFilesUpdate,
     onNewThread,
     isLoadingThreadState,
+    assistants,
+    selectedAssistantId,
+    onSelectAssistant,
   }) => {
     const [input, setInput] = useState("");
     const [isThreadHistoryOpen, setIsThreadHistoryOpen] = useState(false);
@@ -52,6 +58,7 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(
       setThreadId,
       onTodosUpdate,
       onFilesUpdate,
+      selectedAssistantId,
     );
 
     useEffect(() => {
@@ -184,16 +191,27 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(
     return (
       <div className={styles.container}>
         <div className={styles.header}>
-          <div className={styles.headerLeft}>
-            <Bot className={styles.logo} />
-            <h1 className={styles.title}>Deep Agents</h1>
-          </div>
-          <div className={styles.headerRight}>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleNewThread}
-              disabled={!hasMessages}
+        <div className={styles.headerLeft}>
+          <Bot className={styles.logo} />
+          <h1 className={styles.title}>Deep Agents</h1>
+        </div>
+        <div className={styles.headerRight}>
+          <select
+            className={styles.assistantSelect}
+            value={selectedAssistantId}
+            onChange={(e) => onSelectAssistant(e.target.value)}
+          >
+            {assistants.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name || a.id}
+              </option>
+            ))}
+          </select>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleNewThread}
+            disabled={!hasMessages}
             >
               <SquarePen size={20} />
             </Button>
@@ -208,6 +226,7 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(
             setOpen={setIsThreadHistoryOpen}
             currentThreadId={threadId}
             onThreadSelect={handleThreadSelect}
+            assistantId={selectedAssistantId}
           />
           <div className={styles.messagesContainer}>
             {!hasMessages && !isLoading && !isLoadingThreadState && (

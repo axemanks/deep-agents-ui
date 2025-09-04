@@ -1,19 +1,22 @@
 "use client";
 
-import React, { useState, useCallback, useEffect, Suspense } from "react";
-import { useQueryState } from "nuqs";
+import React, { useState, useCallback, useEffect, Suspense, useMemo } from "react";
 import { ChatInterface } from "./components/ChatInterface/ChatInterface";
 import { TasksFilesSidebar } from "./components/TasksFilesSidebar/TasksFilesSidebar";
 import { SubAgentPanel } from "./components/SubAgentPanel/SubAgentPanel";
 import { FileViewDialog } from "./components/FileViewDialog/FileViewDialog";
 import { createClient } from "@/lib/client";
 import { useAuthContext } from "@/providers/Auth";
-import type { SubAgent, FileItem, TodoItem } from "./types/types";
+import type { Assistant, SubAgent, FileItem, TodoItem } from "./types/types";
+import { getDeployment } from "@/lib/environment/deployments";
 import styles from "./page.module.scss";
 
 function HomePageContent() {
   const { session } = useAuthContext();
-  const [threadId, setThreadId] = useQueryState("threadId");
+  const deployment = useMemo(() => getDeployment(), []);
+  const [assistants, setAssistants] = useState<Assistant[]>([]);
+  const [selectedAssistantId, setSelectedAssistantId] = useState<string>("");
+  const [threadIds, setThreadIds] = useState<Record<string, string | null>>({});
   const [selectedSubAgent, setSelectedSubAgent] = useState<SubAgent | null>(
     null,
   );
@@ -22,6 +25,60 @@ function HomePageContent() {
   const [files, setFiles] = useState<Record<string, string>>({});
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isLoadingThreadState, setIsLoadingThreadState] = useState(false);
+
+  const threadId = selectedAssistantId ? threadIds[selectedAssistantId] ?? null : null;
+
+  const setThreadId = useCallback(
+    (
+      value: string | ((old: string | null) => string | null) | null,
+    ) => {
+      if (!selectedAssistantId) return;
+      setThreadIds((prev) => {
+        const current = prev[selectedAssistantId] ?? null;
+        const newVal =
+          typeof value === "function" ? value(current) : value;
+        return { ...prev, [selectedAssistantId]: newVal };
+      });
+    },
+    [selectedAssistantId],
+  );
+
+  useEffect(() => {
+    const fetchAssistants = async () => {
+      if (!session?.accessToken) return;
+      try {
+        const client = createClient(session.accessToken);
+        const list = await client.assistants.search({ limit: 100 });
+        const mapped: Assistant[] = Array.isArray(list)
+          ? list.map((a: any) => ({
+              id: a.assistant_id || a.id,
+              name: a.name || a.assistant_id || a.id,
+            }))
+          : [];
+        setAssistants(mapped);
+        // Choose default assistant:
+        // 1) If NEXT_PUBLIC_AGENT_ID matches an assistant ID (case-insensitive), use it
+        // 2) Else if it matches an assistant NAME (case-insensitive), use that assistant's ID
+        // 3) Else fallback to the first assistant
+        const desired = (deployment.defaultAgentId || "").trim();
+        const matchById = desired
+          ? mapped.find((a) => a.id.toLowerCase() === desired.toLowerCase())
+          : undefined;
+        const matchByName = !matchById && desired
+          ? mapped.find(
+              (a) => (a.name || "").toLowerCase() === desired.toLowerCase(),
+            )
+          : undefined;
+        const defaultId = matchById?.id || matchByName?.id || mapped[0]?.id;
+        if (defaultId) {
+          setSelectedAssistantId(defaultId);
+        }
+      } catch (e) {
+        console.error("Failed to fetch assistants:", e);
+      }
+    };
+    fetchAssistants();
+  }, [session?.accessToken, deployment.defaultAgentId]);
 
   const toggleSidebar = useCallback(() => {
     setSidebarCollapsed((prev) => !prev);
@@ -67,6 +124,22 @@ function HomePageContent() {
     setFiles({});
   }, [setThreadId]);
 
+  const handleSelectAssistant = useCallback((id: string) => {
+    setSelectedAssistantId(id);
+  }, []);
+
+  // Avoid mounting ChatInterface until an assistant is selected to prevent
+  // an early error from useChat throwing "No agent ID selected".
+  if (!selectedAssistantId) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.mainContent}>
+          <div style={{ padding: 16 }}>Loading assistants...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.container}>
       <TasksFilesSidebar
@@ -86,6 +159,9 @@ function HomePageContent() {
           onFilesUpdate={setFiles}
           onNewThread={handleNewThread}
           isLoadingThreadState={isLoadingThreadState}
+          assistants={assistants}
+          selectedAssistantId={selectedAssistantId}
+          onSelectAssistant={handleSelectAssistant}
         />
         {selectedSubAgent && (
           <SubAgentPanel

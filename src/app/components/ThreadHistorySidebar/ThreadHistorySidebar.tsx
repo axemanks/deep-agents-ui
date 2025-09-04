@@ -16,10 +16,11 @@ interface ThreadHistorySidebarProps {
   setOpen: (open: boolean) => void;
   currentThreadId: string | null;
   onThreadSelect: (threadId: string) => void;
+  assistantId: string;
 }
 
 export const ThreadHistorySidebar = React.memo<ThreadHistorySidebarProps>(
-  ({ open, setOpen, currentThreadId, onThreadSelect }) => {
+  ({ open, setOpen, currentThreadId, onThreadSelect, assistantId }) => {
     const [threads, setThreads] = useState<Thread[]>([]);
     const [isLoadingThreadHistory, setIsLoadingThreadHistory] = useState(true);
     const { session } = useAuthContext();
@@ -35,7 +36,8 @@ export const ThreadHistorySidebar = React.memo<ThreadHistorySidebarProps>(
           sortBy: "created_at",
           sortOrder: "desc",
         });
-        const threadList: Thread[] = response.map((thread: any) => {
+        const arr = Array.isArray(response) ? response : [];
+        const threadList: Thread[] = arr.map((thread: any) => {
           let displayContent = `Thread ${thread.thread_id.slice(0, 8)}`;
           try {
             if (
