@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import styles from "./ToolCallBox.module.scss";
 import { ToolCall } from "../../types/types";
+import { getToolMeta } from "../../utils/toolMeta";
 
 interface ToolCallBoxProps {
   toolCall: ToolCall;
@@ -20,7 +21,7 @@ interface ToolCallBoxProps {
 export const ToolCallBox = React.memo<ToolCallBoxProps>(({ toolCall }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const { name, args, result, status } = useMemo(() => {
+  const { name, args, result, status, meta, preview } = useMemo(() => {
     const toolName = toolCall.name || "Unknown Tool";
     const toolArgs = toolCall.args || "{}";
     let parsedArgs = {};
@@ -32,12 +33,34 @@ export const ToolCallBox = React.memo<ToolCallBoxProps>(({ toolCall }) => {
     }
     const toolResult = toolCall.result || null;
     const toolStatus = toolCall.status || "completed";
+    const toolMeta = getToolMeta(toolName);
+    const previewText = (() => {
+      if (toolResult) {
+        const str =
+          typeof toolResult === "string"
+            ? toolResult
+            : JSON.stringify(toolResult);
+        return str.split("\n")[0].slice(0, 50);
+      }
+      const argKeys = Object.keys(parsedArgs);
+      if (argKeys.length > 0) {
+        const key = argKeys[0];
+        const val =
+          typeof parsedArgs[key] === "string"
+            ? parsedArgs[key]
+            : JSON.stringify(parsedArgs[key]);
+        return `${key}: ${val}`.slice(0, 50);
+      }
+      return "";
+    })();
 
     return {
       name: toolName,
       args: parsedArgs,
       result: toolResult,
       status: toolStatus,
+      meta: toolMeta,
+      preview: previewText,
     };
   }, [toolCall]);
 
@@ -76,7 +99,14 @@ export const ToolCallBox = React.memo<ToolCallBoxProps>(({ toolCall }) => {
             <ChevronRight size={14} />
           )}
           {statusIcon}
+          <meta.icon
+            className={styles.toolIcon}
+            style={{ color: meta.color }}
+          />
           <span className={styles.toolName}>{name}</span>
+          {preview && (
+            <span className={styles.description}>{preview}</span>
+          )}
         </div>
       </Button>
 
