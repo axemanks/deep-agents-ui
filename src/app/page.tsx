@@ -56,11 +56,20 @@ function HomePageContent() {
             }))
           : [];
         setAssistants(mapped);
-        const defaultId =
-          deployment.defaultAgentId &&
-          mapped.find((a) => a.id === deployment.defaultAgentId)
-            ? deployment.defaultAgentId
-            : mapped[0]?.id;
+        // Choose default assistant:
+        // 1) If NEXT_PUBLIC_AGENT_ID matches an assistant ID (case-insensitive), use it
+        // 2) Else if it matches an assistant NAME (case-insensitive), use that assistant's ID
+        // 3) Else fallback to the first assistant
+        const desired = (deployment.defaultAgentId || "").trim();
+        const matchById = desired
+          ? mapped.find((a) => a.id.toLowerCase() === desired.toLowerCase())
+          : undefined;
+        const matchByName = !matchById && desired
+          ? mapped.find(
+              (a) => (a.name || "").toLowerCase() === desired.toLowerCase(),
+            )
+          : undefined;
+        const defaultId = matchById?.id || matchByName?.id || mapped[0]?.id;
         if (defaultId) {
           setSelectedAssistantId(defaultId);
         }
@@ -118,6 +127,18 @@ function HomePageContent() {
   const handleSelectAssistant = useCallback((id: string) => {
     setSelectedAssistantId(id);
   }, []);
+
+  // Avoid mounting ChatInterface until an assistant is selected to prevent
+  // an early error from useChat throwing "No agent ID selected".
+  if (!selectedAssistantId) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.mainContent}>
+          <div style={{ padding: 16 }}>Loading assistants...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>

@@ -27,8 +27,7 @@ export const ThreadHistorySidebar = React.memo<ThreadHistorySidebarProps>(
     const deployment = useMemo(() => getDeployment(), []);
 
     const fetchThreads = useCallback(async () => {
-      if (!deployment?.deploymentUrl || !session?.accessToken || !assistantId)
-        return;
+      if (!deployment?.deploymentUrl || !session?.accessToken) return;
       setIsLoadingThreadHistory(true);
       try {
         const client = createClient(session.accessToken);
@@ -36,12 +35,9 @@ export const ThreadHistorySidebar = React.memo<ThreadHistorySidebarProps>(
           limit: 30,
           sortBy: "created_at",
           sortOrder: "desc",
-          metadata: { assistant_id: assistantId },
         });
-        const filtered = Array.isArray(response)
-          ? response.filter((t: any) => t.assistant_id === assistantId)
-          : [];
-        const threadList: Thread[] = filtered.map((thread: any) => {
+        const arr = Array.isArray(response) ? response : [];
+        const threadList: Thread[] = arr.map((thread: any) => {
           let displayContent = `Thread ${thread.thread_id.slice(0, 8)}`;
           try {
             if (
@@ -77,11 +73,11 @@ export const ThreadHistorySidebar = React.memo<ThreadHistorySidebarProps>(
       } finally {
         setIsLoadingThreadHistory(false);
       }
-    }, [deployment?.deploymentUrl, session?.accessToken, assistantId]);
+    }, [deployment?.deploymentUrl, session?.accessToken]);
 
     useEffect(() => {
       fetchThreads();
-    }, [fetchThreads, currentThreadId, assistantId]);
+    }, [fetchThreads, currentThreadId]);
 
     const groupedThreads = useMemo(() => {
       const groups: Record<string, Thread[]> = {
